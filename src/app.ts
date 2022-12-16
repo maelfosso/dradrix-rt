@@ -1,7 +1,16 @@
 import express, { Application } from 'express';
+import { createServer } from 'http';
+import { Server } from 'socket.io';
 
 const app: Application = express();
 app.set('trust proxy', true);
 app.use(express.json());
 
-export { app };
+const server = createServer(app);
+const io = new Server(server, {})
+
+io.on('connection', (socket) => {
+  console.log('user connected ', socket.id);
+});
+
+export { server };
