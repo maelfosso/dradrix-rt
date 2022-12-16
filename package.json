@@ -1,0 +1,9 @@
+{
+  "name": "stockinos-rt",
+  "version": "1.0.0",
+  "description": "RT project of StockInos",
+  "main": "index.ts",
+  "author": "Mael FOSSO",
+  "license": "MIT",
+  "private": true
+}
