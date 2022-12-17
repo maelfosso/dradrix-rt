@@ -1,9 +1,11 @@
+import dotenv from "dotenv";
 import { server } from "./app";
 import { WhatsAppMessageReceivedListener } from "./events/listeners/whatsapp-message-received-listener";
 import { natsWrapper } from "./nats-wrapper";
 
 const start = async () => {
   console.log('Starting ....');
+  dotenv.config();
 
   if (!process.env.NATS_CLUSTER_ID) {
     throw new Error('NATS_CLUSTER_ID must be defined');
