@@ -11,6 +11,10 @@ const io = new Server(server, {})
 
 io.on('connection', (socket) => {
   console.log('user connected ', socket.id);
+
+  socket.on('notice', (message) => {
+    console.log('on notice : ', message);
+  })
 });
 
 export { server };
