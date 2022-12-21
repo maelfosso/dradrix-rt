@@ -19,24 +19,29 @@ const start = async () => {
     throw new Error('NATS_URL must be defined');
   }
 
+  if (!process.env.NATS_SERVERS) {
+    throw new Error('NATS_SERVERS must be defined');
+  }
+
   const PORT = process.env.PORT || 4000;
 
   try {
     await natsWrapper.connect(
-      process.env.NATS_CLUSTER_ID,
-      process.env.NATS_CLIENT_ID,
-      process.env.NATS_URL
+      process.env.NATS_SERVERS
+      // process.env.NATS_CLUSTER_ID,
+      // process.env.NATS_CLIENT_ID,
+      // process.env.NATS_URL
     );
 
-    natsWrapper.client.on('close', () => {
-      console.log('NATS listener closed');
-      process.exit();
-    });
+    // natsWrapper.nc.on('close', () => {
+    //   console.log('NATS listener closed');
+    //   process.exit();
+    // });
 
-    process.on('SIGINT', () => natsWrapper.client.close());
-    process.on('SIGTERM', () => natsWrapper.client.close());
+    process.on('SIGINT', () => natsWrapper.nc.close());
+    process.on('SIGTERM', () => natsWrapper.nc.close());
 
-    new WhatsAppMessageReceivedListener(natsWrapper.client).listen();
+    new WhatsAppMessageReceivedListener(natsWrapper.jsm, natsWrapper.nc.jetstream()).listen();
   } catch (error) {
     console.log(error);
   }

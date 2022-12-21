@@ -1,45 +1,61 @@
-import { Message, Stan } from 'node-nats-streaming';
+import * as nats from 'nats';
+import { AckPolicy, createInbox, JsMsg, StringCodec } from 'nats';
 import { Event } from './event';
 
 export abstract class Listener<T extends Event> {
   abstract subject: T['subject'];
-  abstract queueGroupName: string;
-  abstract onMessage(data: T['data'], msg: Message): void;
-  private client: Stan;
+  abstract stream: T['stream'];
+  abstract onMessage(data: T['data'], msg: JsMsg): void;
+  private jsm: nats.JetStreamManager;
+  private js: nats.JetStreamClient;
   protected ackWait = 5 * 1000;
 
-  constructor(client: Stan) {
-    this.client = client;
+  constructor(jsm: nats.JetStreamManager, js: nats.JetStreamClient) {
+    this.jsm = jsm;
+    this.js = js;
   }
 
-  subscriptionOptions() {
-    return this.client
-      .subscriptionOptions()
-      .setDeliverAllAvailable() // send the event to those who can
-      .setManualAckMode(true) // sendinga ack when the event processed
-      .setAckWait(this.ackWait) // how long the wait for ack
-      .setDurableName(this.queueGroupName) // what queue group this listener is, and define him as durable
-    ;
+  setup() {
+    // check if stream exists
+    // add subject to the stream
   }
 
-  listen() {
-    const subscription = this.client.subscribe(
-      this.subject,
-      this.queueGroupName,
-      this.subscriptionOptions()
-    );
+  async listen() {
+    const inbox = createInbox();
 
-    subscription.on('message', (msg: Message) => {
-      console.log(`Message received: ${this.subject} / ${this.queueGroupName}`);
-      const parsedData = this.parseMessage(msg);
-      this.onMessage(parsedData, msg);
-    })
+    let consumer;
+    try {
+      consumer = await this.jsm.consumers.info(this.stream, "me");
+    } catch (err) {
+      consumer = await this.jsm.consumers.add(this.stream, {
+        durable_name: "me",
+        ack_policy: AckPolicy.Explicit,
+        deliver_subject: inbox
+      });
+    }
+
+    const opts = nats.consumerOpts();
+    opts.bind(this.stream, "me");
+
+    let sub = await this.js.subscribe(this.subject, opts);
+    const done = (async () => {
+      for await (const msg of sub) {
+        // do something with the message
+        // and if the consumer is not set to auto-ack, ack!
+        // m.ack();
+        const parseData = this.parseMessage(msg);
+        console.log(`Received a message [${msg.seq}] ${parseData}`);
+        this.onMessage(parseData, msg);
+      }
+    })();
+
+    await done;
   }
 
-  parseMessage(msg: Message) {
-    const data = msg.getData();
-    return typeof data === 'string'
-      ? JSON.parse(data)
-      : JSON.parse(data.toString('utf-8'))
+  parseMessage(msg: nats.JsMsg) {
+    const data = msg.data;
+    const sc = StringCodec();
+
+    return JSON.parse(sc.decode(data));
   }
 }

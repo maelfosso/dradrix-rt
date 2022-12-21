@@ -1,38 +1,54 @@
-import nats, { Stan } from 'node-nats-streaming';
+// import nats, { Stan } from 'node-nats-streaming';
+import * as nats from 'nats';
 
 class NatsWrapper {
-  private _client?: Stan;
+  private _nc?: nats.NatsConnection;
+  private _jsm?: nats.JetStreamManager;
 
-  get client() {
-    if (!this._client) {
-      throw new Error('Cannot access NATS client before connecting');
+  get nc() {
+    if (!this._nc) {
+      throw new Error('Cannot access NATS before connecting');
     }
 
-    return this._client;
+    return this._nc;
   }
 
-  connect(clusterId: string, clientId: string, url: string): Promise<void> {
-    this._client = nats.connect(clusterId, clientId, { url });
+  get jsm() {
+    if (!this._jsm) {
+      throw new Error('Cannot access JetStreamManager before connecting');
+    }
 
-    // this._client.on('close', () => {
-    //   console.log('NATS listener closed');
-    //   process.exit();
-    // });
-
-    // process.on('SIGINT', () => this._client?.close());
-    // process.on('SIGTERM', () => this.client.close());
-
-    return new Promise((resolve, reject) => {
-      this.client.on('connect', () => {
-        console.log('Connected to NATS');
-        resolve();
-      });
-
-      this.client.on('error', (err) => {
-        reject(err);
-      });
-    })
+    return this._jsm;
   }
+
+  async connect(server: string) {
+    this._nc = await nats.connect({ servers: server });
+    console.log(`connected to ${this._nc.getServer()}`)
+
+    this._jsm = await this._nc.jetstreamManager();
+    // create the list of stream with their corresponding subjects
+  }
+
+  async checkStreamOrCreate(name: string): Promise<nats.StreamInfo>  {
+    let streamInfo: nats.StreamInfo;
+
+    const stream = await this._jsm?.streams.find(name);
+    if (stream) {
+      streamInfo = await this._jsm?.streams.info(stream)!;
+    } else {
+      streamInfo = await this._jsm?.streams.add({ name, subjects: [`${name}:*`]})!
+    }
+
+    return streamInfo;
+  }
+
+ async addSubjectToStream(streamInfo: nats.StreamInfo, subject: string): Promise<nats.StreamInfo> {
+  streamInfo?.config.subjects?.push(subject);
+  await this._jsm?.streams.update(streamInfo.config.name, streamInfo?.config);
+
+  return streamInfo
+ }
+
 }
 
 export const natsWrapper = new NatsWrapper();
