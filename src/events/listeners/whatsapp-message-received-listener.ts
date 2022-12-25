@@ -1,5 +1,4 @@
 import { JsMsg } from "nats";
-import { Message } from "node-nats-streaming";
 import { Listener } from "../base-listener";
 import { Streams } from "../streams";
 import { Subjects } from "../subjects";

@@ -40,9 +40,6 @@ export abstract class Listener<T extends Event> {
     let sub = await this.js.subscribe(this.subject, opts);
     const done = (async () => {
       for await (const msg of sub) {
-        // do something with the message
-        // and if the consumer is not set to auto-ack, ack!
-        // m.ack();
         const parseData = this.parseMessage(msg);
         console.log(`Received a message [${msg.seq}] ${parseData}`);
         this.onMessage(parseData, msg);
