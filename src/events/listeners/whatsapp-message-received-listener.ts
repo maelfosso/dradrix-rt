@@ -1,4 +1,5 @@
 import { JsMsg } from "nats";
+import { socketWrapper } from "../../socket-wrapper";
 import { Listener } from "../base-listener";
 import { Streams } from "../streams";
 import { Subjects } from "../subjects";
@@ -11,6 +12,7 @@ export class WhatsAppMessageReceivedListener extends Listener<WhatsAppMessageRec
   onMessage(data: WhatsAppMessageReceivedEvent['data'], msg: JsMsg) {
     console.log('Event data !', data);
 
+    socketWrapper.io.emit(this.subject, data);
     msg.ack();
   }
 }
