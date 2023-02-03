@@ -42,12 +42,12 @@ class NatsWrapper {
     return streamInfo;
   }
 
- async addSubjectToStream(streamInfo: nats.StreamInfo, subject: string): Promise<nats.StreamInfo> {
-  streamInfo?.config.subjects?.push(subject);
-  await this._jsm?.streams.update(streamInfo.config.name, streamInfo?.config);
+  async addSubjectToStream(streamInfo: nats.StreamInfo, subject: string): Promise<nats.StreamInfo> {
+    streamInfo?.config.subjects?.push(subject);
+    await this._jsm?.streams.update(streamInfo.config.name, streamInfo?.config);
 
-  return streamInfo
- }
+    return streamInfo
+  }
 
 }
 

@@ -1,5 +1,8 @@
 import { Server as HttpServer } from "http";
 import { Server, Socket } from "socket.io";
+import { WhatsAppMessageWoZSentPublisher } from "./events/publishers/whatsapp-message-woz-sent-publisher";
+import { WhatsAppMessageWoZSentDataType } from "./events/types";
+import { natsWrapper } from "./nats-wrapper";
 
 class SocketWrapper {
   private _io?: Server;
@@ -21,6 +24,13 @@ class SocketWrapper {
       socket.on('notice', (message) => {
         console.log('on notice: ', message);
       });
+
+      socket.on('whatsapp:message:woz:sent', async (message: WhatsAppMessageWoZSentDataType) => {
+        console.log('whatsapp:message:woz:sent', message);
+
+        await new WhatsAppMessageWoZSentPublisher(natsWrapper.jsm, natsWrapper.nc.jetstream())
+          .publish(message);
+      })
     });
   }
 }
